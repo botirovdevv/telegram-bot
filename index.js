@@ -111,7 +111,7 @@ bot.on("callback_query", (query) => {
 });
 
 // Webhookni o‘rnatish
-bot.setWebHook("https://iphone-emoji.onrender.com/"  + token)
+bot.setWebHook("https://iphone-emoji.onrender.com/webhook")
   .then(() => console.log("✅ Webhook o‘rnatildi!"))
   .catch(error => console.error("❌ Webhook xatosi:", error));
 
