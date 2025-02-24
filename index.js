@@ -1,7 +1,7 @@
 const TelegramBot = require("node-telegram-bot-api");
 
 const token = "8073391955:AAHSGZDJjLP8pztdLfmMC8AVskBfOStwR6Q";
-const bot = new TelegramBot(BOT_TOKEN, { webHook: true });
+const bot = new TelegramBot(token, { webHook: true });
 
 const ADMIN_CHAT_ID = 5663095517;
 
