@@ -37,7 +37,7 @@ bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(
         chatId,
-        `👋 Assalomu alaykum! \n\n📌 *Foydalanish qoidalari:* \n✅ Haftasiga *5 xil emoji* yuborishingiz mumkin. \n✅ Matnli xabarlarni cheklovsiz yuborishingiz mumkin. \n\n🔥 Xabaringizni yuboring!`,
+        `👋 Assalomu alaykum! \n\n📌 *Foydalanish qoidalari:* \n✅ Haftasiga *5 xil emoji* yuborishingiz mumkin. \n✅ Matnli xabarlarni cheklovsiz yuborishingiz mumkin. \n\n🔥 Xabaringizni yuboring! \n @iphonestikerbot \n @iphone_sticker`,
         { parse_mode: "Markdown" }
     );
 });
