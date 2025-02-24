@@ -1,4 +1,8 @@
 const TelegramBot = require("node-telegram-bot-api");
+const express = require("express");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
 
 const token = "8073391955:AAHSGZDJjLP8pztdLfmMC8AVskBfOStwR6Q";
 const bot = new TelegramBot(token, { webHook: true });
@@ -7,6 +11,14 @@ const ADMIN_CHAT_ID = 5663095517;
 
 let userEmojiUsage = {};
 const userMessageMap = new Map();
+
+app.use(express.json());
+
+// Webhook uchun endpoint
+app.post("/webhook", (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+});
 
 // ⏳ Haftalik limitni tiklash
 const resetEmojiLimit = () => {
@@ -98,7 +110,11 @@ bot.on("callback_query", (query) => {
     }
 });
 
+// Webhookni o‘rnatish
+bot.setWebHook("https://iphone-emoji.onrender.com/"  + token)
+  .then(() => console.log("✅ Webhook o‘rnatildi!"))
+  .catch(error => console.error("❌ Webhook xatosi:", error));
 
-bot.setWebHook(`https://iphone-emoji.onrender.com/webhook`)
-  .then(() => console.log('✅ Webhook o‘rnatildi!'))
-  .catch(error => console.error('❌ Webhook xatosi:', error.response ? error.response.data : error));
+app.listen(PORT, () => {
+    console.log(`🚀 Server ishlayapti: http://localhost:${PORT}`);
+});
