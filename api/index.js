@@ -1,24 +1,16 @@
 const TelegramBot = require("node-telegram-bot-api");
-const express = require("express");
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-const token = "8073391955:AAHSGZDJjLP8pztdLfmMC8AVskBfOStwR6Q";
+const token = '8073391955:AAHSGZDJjLP8pztdLfmMC8AVskBfOStwR6Q'
 const bot = new TelegramBot(token, { webHook: true });
 
 const ADMIN_CHAT_ID = 5663095517;
-
 let userEmojiUsage = {};
 const userMessageMap = new Map();
 
-app.use(express.json());
-
-// Webhook uchun endpoint
-app.post("/webhook", (req, res) => {
-    bot.processUpdate(req.body);
-    res.sendStatus(200);
-});
+// 🔍 Emojilarni ajratib olish
+const extractEmojis = (text) => {
+    return [...text].filter(char => char.match(/\p{Emoji}/u));
+};
 
 // ⏳ Haftalik limitni tiklash
 const resetEmojiLimit = () => {
@@ -27,22 +19,15 @@ const resetEmojiLimit = () => {
 };
 setInterval(resetEmojiLimit, 7 * 24 * 60 * 60 * 1000);
 
-// 🔍 Emojilarni ajratib olish
-const extractEmojis = (text) => {
-    return [...text].filter(char => char.match(/\p{Emoji}/u));
-};
-
-// ✅ /start buyrug‘iga javob
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(
         chatId,
-        `👋 Assalomu alaykum! \n\n📌 *Foydalanish qoidalari:* \n✅ Haftasiga *5 xil emoji* yuborishingiz mumkin. \n✅ Matnli xabarlarni cheklovsiz yuborishingiz mumkin. \n\n🔥 Xabaringizni yuboring! \n @iphonestikerbot \n @iphone_sticker`,
+        `👋 Assalomu alaykum! \n\n📌 *Foydalanish qoidalari:* \n✅ Haftasiga *5 xil emoji* yuborishingiz mumkin. \n✅ Matnli xabarlarni cheklovsiz yuborishingiz mumkin. \n\n🔥 Xabaringizni yuboring! `,
         { parse_mode: "Markdown" }
     );
 });
 
-// ✉️ Foydalanuvchi xabarini tekshirish va adminlarga yuborish
 bot.on("message", (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text || "";
@@ -50,7 +35,7 @@ bot.on("message", (msg) => {
     const firstName = msg.from.first_name || "Noma'lum";
     const userId = msg.from.id;
 
-    if (text.startsWith("/start") || text.startsWith("/admin") || text.startsWith("/stats") || text.startsWith("/reset")) return;
+    if (text.startsWith("/start")) return;
 
     const emojis = extractEmojis(text);
 
@@ -58,7 +43,6 @@ bot.on("message", (msg) => {
         if (!userEmojiUsage[chatId]) {
             userEmojiUsage[chatId] = new Set();
         }
-
         emojis.forEach((emoji) => userEmojiUsage[chatId].add(emoji));
 
         if (userEmojiUsage[chatId].size > 5) {
@@ -110,11 +94,55 @@ bot.on("callback_query", (query) => {
     }
 });
 
-// Webhookni o‘rnatish
-bot.setWebHook("https://iphone-emoji.onrender.com/webhook")
-  .then(() => console.log("✅ Webhook o‘rnatildi!"))
-  .catch(error => console.error("❌ Webhook xatosi:", error));
+let newEmojis = new Set(); // Yangi yuborilgan emojilar saqlanadigan joy
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server ishlayapti: http://localhost:${PORT}`);
+bot.on("message", (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text || "";
+    const emojis = extractEmojis(text);
+
+    if (text.startsWith("/start")) return;
+
+    if (emojis.length > 0) {
+        emojis.forEach((emoji) => {
+            newEmojis.add(emoji); // Admin uchun emoji ro'yxatga qo'shish
+        });
+
+        if (!userEmojiUsage[chatId]) {
+            userEmojiUsage[chatId] = new Set();
+        }
+        emojis.forEach((emoji) => userEmojiUsage[chatId].add(emoji));
+
+        if (userEmojiUsage[chatId].size > 5) {
+            return bot.sendMessage(chatId, `🚫 Siz haftasiga faqat *5 xil emoji* yuborishingiz mumkin!\n\n✅ Hozir yuborganlaringiz: ${[...userEmojiUsage[chatId]].join(" ")}`, { parse_mode: "Markdown" });
+        }
+
+        bot.sendMessage(chatId, `✅ Emoji qabul qilindi! (${userEmojiUsage[chatId].size}/5)\n\n📌 Siz yuborgan emojilar: ${[...userEmojiUsage[chatId]].join(" ")}`);
+    }
 });
+
+// 🛠 Admin yangi yuborilgan emojilarni ko'rish uchun
+bot.onText(/\/emojilar/, (msg) => {
+    if (msg.chat.id !== ADMIN_CHAT_ID) {
+        return bot.sendMessage(msg.chat.id, "❌ Ushbu buyruq faqat admin uchun mavjud.");
+    }
+
+    if (newEmojis.size === 0) {
+        return bot.sendMessage(ADMIN_CHAT_ID, "ℹ️ Yangi yuborilgan emojilar yo'q.");
+    }
+
+    const emojiList = [...newEmojis].join(" ");
+    bot.sendMessage(ADMIN_CHAT_ID, `🆕 *Yangi yuborilgan emojilar:* \n\n${emojiList}`, { parse_mode: "Markdown" });
+
+    newEmojis.clear(); // Ko'rib bo'lingan emojilarni tozalash
+});
+
+
+module.exports = async (req, res) => {
+    if (req.method === "POST") {
+        bot.processUpdate(req.body);
+        res.status(200).send("✅ Webhook qabul qilindi");
+    } else {
+        res.status(200).send("🚀 Telegram bot webhook ishlayapti");
+    }
+};
